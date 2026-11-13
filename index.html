@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ritmo</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light;--bg:#eef0f3;--card:#fff;--ink:#1b2430;--mut:#6b7686;--line:#dde1e7;--low:#e8b100;--ok:#1f9d55;--bonus:#2f7df6;--lav:#7a5af8;--app:#12a3a0;--free:#d9622b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#12161c;--card:#1c222b;--ink:#e8ecf2;--mut:#93a0b2;--line:#2d3642}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#12161c;--card:#1c222b;--ink:#e8ecf2;--mut:#93a0b2;--line:#2d3642}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.4 Manrope,system-ui,sans-serif}
+main{max-width:980px;margin:0 auto;padding:16px 16px 56px}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px}
+h1{font-size:22px;font-weight:800;margin:0;letter-spacing:-.02em}
+.nav{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+button{font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
+button:focus-visible{outline:2px solid var(--bonus);outline-offset:2px}
+button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.sub{color:var(--mut);font-size:13px}
+.bar{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:16px}
+.track{display:flex;height:14px;border-radius:7px;background:var(--line);overflow:hidden;margin-top:8px}
+.track i{display:block;height:100%}
+.lg{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--mut);margin-top:8px}
+.lg b{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:4px}
+h2{font-size:14px;font-weight:600;color:var(--mut);margin:18px 0 8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.tile.run{border-color:var(--bonus)}
+.rw{position:relative;width:108px;height:108px}
+.rw svg{width:100%;height:100%;transform:rotate(-90deg)}
+.rw circle{fill:none;stroke-width:7;stroke-linecap:round}
+.ctr{position:absolute;inset:20px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;font-weight:800;font-size:15px;line-height:1.1;font-variant-numeric:tabular-nums}
+.ctr:disabled{opacity:.5;cursor:default}
+.ctr small{font-size:11px;font-weight:400;color:var(--mut)}
+.nm{font-weight:800}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center}
+.row button{padding:3px 9px;font-size:13px}
+.pn .row{justify-content:flex-start}
+.pn .row button{padding:6px 12px;font-size:14px}
+.pn p{margin:8px 0}
+.chips button{font-size:12px;padding:2px 8px;color:var(--mut)}
+.chips button.on{background:var(--low);border-color:var(--low);color:#1b2430}
+.tbl{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.tw{overflow-x:auto}
+.tbl th,.tbl td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--line);font-size:14px}
+.tbl th:first-child,.tbl td:first-child{text-align:left}
+.tbl th{font-weight:600;color:var(--mut)}
+.d{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:middle}
+.k{width:9px;height:9px;margin-right:5px}
+.st{position:fixed;right:12px;bottom:calc(10px + env(safe-area-inset-bottom,0px));font-size:12px;color:var(--mut);padding:3px 8px}
+#ed input,#ed select{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px 6px;width:100%;margin-bottom:4px}
+#ed input[type=number]{width:64px;text-align:center;margin:0}
+#ed td:first-child{min-width:230px}
+</style></head><body><main>
+<header><h1>Ritmo</h1><div class="nav" id="nav"></div></header>
+<div id="app"></div></main>
+<button class="st" id="st" data-a="st">caricamento…</button>
+<input type="file" id="imp" accept=".json,application/json" hidden>
+<script>
+const M={idv:['Identità visiva studio','L','elementi definiti'],prop:['Proposte','L','proposte raffinate'],ann:['Annunci','L','annunci valutati o risposte'],doc:['Docenza','L','contatti o programmi'],net:['Networking','L','contatti o eventi'],ae:['After Effects','A','lezioni completate'],soc:['Social media','A','argomenti studiati'],dis:['Disegno','A','sketch'],tre:['Tecniche e trend','A','spunti salvati'],all:['Allenamento','T','modifiche al piano'],alp:['Alpinismo','T','argomenti studiati']};
+const S={1:[['idv',120],['soc',45],['doc',45],['dis',30]],2:[['ann',30],['prop',60],['ae',60],['doc',45],['tre',30]],3:[['idv',120],['soc',45],['net',45],['dis',30]],4:[['ann',60],['soc',45],['doc',90],['tre',30]],5:[['ann',60],['ae',60],['net',45],['dis',30]]};
+const F={1:[['alp',30]],2:[['all',20]],3:[['alp',30]],4:[['all',20]],5:[['all',20]]};
+const POOL=['ann','prop','tre','all','alp'];
+const WHY=['Imprevisto','Stanchezza','Poco tempo','Altro'];
+const DN=['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
+const CC={L:'var(--lav)',A:'var(--app)',T:'var(--free)'};
+const V=2;
+const DEF=()=>{const acts={},plan={};Object.keys(M).forEach(k=>acts[k]={n:M[k][0],c:M[k][1],g:M[k][2]});for(let w=1;w<=5;w++)plan[w]=[...S[w],...F[w]];return{u:0,acts,plan,pool:[...POOL]}};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ds=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const pd=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c)};
+const today=()=>ds(new Date());
+const $=id=>document.getElementById(id),setSt=t=>$('st').textContent=t;
+let store={v:V,u:0,bk:0,days:{},cfg:DEF()},days=store.days,blocked=false,ed=null,lastToday=today(),date=lastToday,view='oggi',fh=null,perm=false,fileMod=0,dirty=false,tm=null,chain=Promise.resolve();
+
+/* ---------- archiviazione: browser (IndexedDB) + file nella cartella Drive ---------- */
+const idb=()=>new Promise((ok,no)=>{const r=indexedDB.open('ritmo',1);r.onupgradeneeded=()=>r.result.createObjectStore('k');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
+const idbSet=async(k,v)=>{const d=await idb();return new Promise((ok,no)=>{const t=d.transaction('k','readwrite');t.objectStore('k').put(v,k);t.oncomplete=ok;t.onerror=()=>no(t.error)})};
+const idbGet=async k=>{const d=await idb();return new Promise((ok,no)=>{const r=d.transaction('k').objectStore('k').get(k);r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)})};
+async function wr(h,s){const w=await h.createWritable();await w.write(s);await w.close();fileMod=(await h.getFile()).lastModified}
+function merge(o){let ch=false;if(!o||!o.days)return false;
+ if((o.v||1)>V){blocked=true;setSt('file più recente: ricarica la pagina (Ctrl+F5)');return false}
+ Object.keys(o.days).forEach(k=>{const x=o.days[k],y=days[k],live=y&&y.a&&Object.keys(y.a).some(i=>y.a[i].run);if(!live&&(!y||(x.u||0)>(y.u||0))){days[k]=x;ch=true}});
+ if(o.cfg&&o.cfg.acts&&(o.cfg.u||0)>(store.cfg.u||0)){store.cfg=o.cfg;if(o.cfgPrev)store.cfgPrev=o.cfgPrev;ch=true}
+ Object.keys(o).forEach(k=>{if(!['v','u','bk','days','cfg','cfgPrev'].includes(k))store[k]=o[k]});
+ if((o.bk||0)>(store.bk||0))store.bk=o.bk;return ch}
+function persist(){dirty=true;clearTimeout(tm);tm=setTimeout(flush,300);setSt('salvataggio…')}
+function flush(){dirty=false;if(blocked){setSt('aggiorna la pagina (Ctrl+F5) prima di salvare');return}const snap=JSON.stringify(store);
+ chain=chain.then(async()=>{let ok=false;try{await idbSet('data',snap);ok=true}catch(e){}
+  if(fh&&perm){try{await wr(fh,snap);setSt('salvato su file');return}catch(e){perm=false}}
+  setSt(ok?(fh?'riautorizza file':'salvato nel browser'):'non salvato')}).catch(()=>setSt('non salvato'))}
+async function chk(ask){if(!fh)return;
+ try{let p=await fh.queryPermission({mode:'readwrite'});if(p!=='granted'&&ask)p=await fh.requestPermission({mode:'readwrite'});perm=p==='granted';
+  if(perm){const f=await fh.getFile();if(f.lastModified!==fileMod){fileMod=f.lastModified;const t=await f.text();if(t.trim())merge(JSON.parse(t));flush();render()}else setSt('salvato su file')}
+  else setSt('riautorizza file')}catch(e){perm=false;setSt('riautorizza file')}}
+async function link(mode){try{const o={types:[{description:'Dati Ritmo',accept:{'application/json':['.json']}}]};
+ fh=mode==='new'?await showSaveFilePicker({...o,suggestedName:'ritmo-dati.json'}):(await showOpenFilePicker({...o,mode:'readwrite'}))[0];
+ await idbSet('fh',fh);fileMod=0;await chk(true);render()}catch(e){if(e.name!=='AbortError')setSt('collegamento non riuscito')}}
+function exp(){store.bk=Date.now();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(store,null,1)],{type:'application/json'}));a.download='ritmo-backup-'+today()+'.json';a.click();flush();render()}
+$('imp').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{merge(JSON.parse(r.result));flush();render()}catch(x){alert('File non valido')}};r.readAsText(f);e.target.value=''});
+
+/* ---------- dati e piano ---------- */
+const get=(dt,id)=>Object.assign({sec:0,run:null,ex:0,g:0,w:''},(days[dt]&&days[dt].a&&days[dt].a[id])||{});
+const mins=e=>(e.sec+(e.run?(Date.now()-e.run)/1000:0))/60+e.ex;
+const cfg=()=>store.cfg;
+const A=(dt,id)=>(days[dt]&&dt<today()&&days[dt].acts&&days[dt].acts[id])||cfg().acts[id]||{n:id,c:'A',g:''};
+const cur=dt=>{const w=pd(dt).getDay(),c=cfg(),a=c.acts;
+ if(w<1||w>5)return{main:[],free:[],pool:c.pool.filter(i=>a[i]&&!a[i].x).map(i=>[i,0])};
+ const l=(c.plan[w]||[]).filter(x=>a[x[0]]&&!a[x[0]].x).map(x=>[x[0],x[1]]);
+ return{main:l.filter(x=>a[x[0]].c!=='T'),free:l.filter(x=>a[x[0]].c==='T'),pool:[]}};
+function shot(dt){const d=days[dt],p=plan(dt),o={};
+ [...p.main,...p.free,...p.pool,...Object.keys(d.a||{}).map(i=>[i])].forEach(x=>{if(cfg().acts[x[0]])o[x[0]]={...cfg().acts[x[0]]}});
+ d.plan={main:p.main,free:p.free,pool:p.pool};d.acts=o}
+function plan(dt){const s=days[dt]&&days[dt].plan;if(s&&dt<today())return s;const c=cur(dt);
+ if(s&&dt===today())['main','free'].forEach(k=>(s[k]||[]).forEach(x=>{if(mins(get(dt,x[0]))>0&&![...c.main,...c.free].some(y=>y[0]===x[0]))c[k].push([x[0],x[1]])}));return c}
+function mut(dt,id,fn){const d=days[dt]=days[dt]||{a:{}};d.a=d.a||{};if(dt>=today()||!d.plan)shot(dt);const e=get(dt,id);fn(e);d.a[id]=e;d.u=Date.now();store.u=d.u;persist();render()}
+function stop(e){let s=(Date.now()-e.run)/1000;if(s>14400){const v=parseFloat(prompt('Il timer era acceso da '+(s/3600).toFixed(1)+' h. Quanti minuti contare?',60));if(!isNaN(v))s=Math.max(0,v)*60}e.sec+=s;e.run=null}
+function toggle(id){const dt=date;if(dt!==today())return;const a=(days[dt]&&days[dt].a)||{};
+ Object.keys(a).forEach(k=>{if(a[k].run&&k!==id)mut(dt,k,stop)});
+ mut(dt,id,e=>{if(e.run)stop(e);else e.run=Date.now()})}
+function roll(){const t=today();if(t===lastToday)return;const old=lastToday,mid=pd(t).getTime(),a=(days[old]&&days[old].a)||{};lastToday=t;
+ Object.keys(a).forEach(id=>{if(a[id].run){mut(old,id,e=>{e.sec+=Math.max(0,(mid-e.run)/1000);e.run=null});mut(t,id,e=>{e.run=mid})}});
+ if(date===old)date=t;render()}
+
+/* ---------- viste ---------- */
+const fmt=m=>{const s=Math.floor(m*60),h=Math.floor(s/3600),mm=Math.floor(s%3600/60),ss=s%60;return(h?h+':'+String(mm).padStart(2,'0'):mm)+':'+String(ss).padStart(2,'0')};
+const hh=m=>{const r=Math.round(m);return Math.floor(r/60)+' h '+String(r%60).padStart(2,'0')};
+function vals(id,blk,dt){const e=get(dt,id),m=mins(e),r=Math.round(m);
+ return{e,m,f:(blk?Math.min(m/blk,1):0)*188.5,b:(blk?Math.min(Math.max(m-blk,0)/blk,1):Math.min(m/60,1))*238.8,col:blk&&m>=blk?'var(--ok)':'var(--low)',
+  sub:blk?r+' / '+blk+' min'+(m>blk?' · +'+(r-blk)+' bonus':''):r+' min · bonus'}}
+function tile(id,blk,dt){const q=A(dt,id),n=esc(q.n),c=q.c,gl=esc(q.g),v=vals(id,blk,dt),e=v.e,on=dt===today();
+ const chips=blk&&v.m<blk?`<div class="row chips">${WHY.map(w=>`<button data-a="w" data-id="${id}" data-v="${w}" class="${e.w===w?'on':''}">${w}</button>`).join('')}</div>`:'';
+ return `<div class="tile ${e.run?'run':''}" data-tile="${id}" data-blk="${blk}" data-done="${blk&&v.m>=blk?1:0}"><div class="rw"><svg viewBox="0 0 84 84"><circle cx="42" cy="42" r="30" stroke="var(--line)"/><circle cx="42" cy="42" r="30" stroke="${v.col}" stroke-dasharray="${v.f} 188.5"/><circle cx="42" cy="42" r="38" stroke="var(--bonus)" stroke-dasharray="${v.b} 238.8" style="stroke-width:4"/></svg>
+ <button class="ctr" data-a="t" data-id="${id}" ${on?'':'disabled'} aria-label="Timer ${n}">${fmt(v.m)}<small>${on?(e.run?'pausa':'avvia'):'—'}</small></button></div>
+ <div class="nm"><span class="d k" style="background:${CC[c]}"></span>${n}</div><div class="sub">${v.sub}</div>
+ <div class="row"><button data-a="m" data-id="${id}" data-d="-5">−5</button><button data-a="m" data-id="${id}" data-d="5">+5</button><button data-a="m" data-id="${id}" data-d="15">+15</button></div>
+ <div class="row sub"><span>${gl}</span><button data-a="g" data-id="${id}" data-d="-1">−</button><b>${e.g}</b><button data-a="g" data-id="${id}" data-d="1">+</button></div>${chips}</div>`}
+function bar(){const p=plan(date),base={L:0,A:0,T:0};let bonus=0,pl=0;
+ [...p.main,...p.free,...p.pool].forEach(([id,b])=>{const m=mins(get(date,id));base[A(date,id).c]+=Math.min(m,b);bonus+=Math.max(m-b,0);pl+=b});
+ const tot=base.L+base.A+base.T+bonus,sc=Math.max(300,tot),w=x=>x/sc*100;
+ return `<b>${hh(tot)}</b> <span class="sub">su 5 h${tot>300?' · oltre le 5 h':''} · pianificate ${hh(pl)}</span><div class="track"><i style="width:${w(base.L)}%;background:var(--lav)"></i><i style="width:${w(base.A)}%;background:var(--app)"></i><i style="width:${w(base.T)}%;background:var(--free)"></i><i style="width:${w(bonus)}%;background:var(--bonus)"></i></div><div class="lg"><span><b style="background:var(--lav)"></b>lavoro</span><span><b style="background:var(--app)"></b>apprendimento</span><span><b style="background:var(--free)"></b>tempo libero</span><span><b style="background:var(--bonus)"></b>bonus</span></div>`}
+function oggi(){const p=plan(date);let o=`<div class="bar" id="bar">${bar()}</div>`;
+ if(p.main.length)o+=`<div class="grid">${p.main.map(([i,b])=>tile(i,b,date)).join('')}</div>`;
+ if(p.free.length)o+=`<h2>Tempo libero (conta nelle 5 ore)</h2><div class="grid">${p.free.map(([i,b])=>tile(i,b,date)).join('')}</div>`;
+ if(p.pool.length)o+=`<h2>Weekend: tempo extra, in quest’ordine</h2><div class="grid">${p.pool.map(([i,b])=>tile(i,b,date)).join('')}</div>`;
+ return o}
+function sett(){const d0=pd(date),w=d0.getDay()||7,mon=new Date(d0);mon.setDate(d0.getDate()-w+1);
+ const dts=[0,1,2,3,4,5,6].map(k=>{const x=new Date(mon);x.setDate(mon.getDate()+k);return ds(x)}),T=today();let tp=0,td=0;
+ const used=new Set();dts.forEach(dt=>{const p=plan(dt);[...p.main,...p.free].forEach(x=>used.add(x[0]));Object.keys((days[dt]&&days[dt].a)||{}).forEach(i=>used.add(i))});
+ const ids=[...Object.keys(cfg().acts).filter(i=>used.has(i)),...[...used].filter(i=>!cfg().acts[i])];
+ const rows=ids.map(id=>{let pl=0,ok=0,mm=0;const cells=dts.map(dt=>{const p=plan(dt),b=([...p.main,...p.free].find(x=>x[0]===id)||[0,0])[1],m=mins(get(dt,id));mm+=m;
+  if(!b)return `<td>${m>0?'<span class="d" style="background:var(--bonus)"></span>':'<span class="sub">·</span>'}</td>`;
+  pl++;if(m>=b)ok++;tp+=b;td+=Math.min(m,b);
+  const c=m>b?'var(--bonus)':m>=b?'var(--ok)':m>0?'var(--low)':dt<T?'var(--mut)':'transparent';
+  return `<td><span class="d" style="background:${c};border:2px solid ${m>0||dt<T?c:'var(--line)'}"></span></td>`}).join('');
+  return `<tr><td>${esc(A(dts.find(dt=>{const p=plan(dt);return[...p.main,...p.free].some(x=>x[0]===id)})||date,id).n)}</td>${cells}<td>${ok}/${pl}</td><td>${(mm/60).toFixed(1)} h</td></tr>`}).join('');
+ return `<div class="bar"><b>${(td/60).toFixed(1)} h</b> <span class="sub">fatte su ${(tp/60).toFixed(1)} h pianificate (bonus esclusi)</span></div><div class="tw"><table class="tbl"><tr><th>Attività</th>${['Lun','Mar','Mer','Gio','Ven','Sab','Dom'].map(x=>`<th>${x}</th>`).join('')}<th>Blocchi</th><th>Ore</th></tr>${rows}</table></div><div class="lg"><span><b style="background:var(--ok)"></b>minimo raggiunto</span><span><b style="background:var(--low)"></b>sotto il minimo</span><span><b style="background:var(--bonus)"></b>bonus</span><span><b style="background:var(--mut)"></b>non fatto</span></div>`}
+function dati(){const api='showSaveFilePicker' in window,bk=store.bk?Math.floor((Date.now()-store.bk)/864e5)+' giorni fa':'mai';
+ return `<div class="bar pn"><b>Salvataggio dei dati</b>
+ <p class="sub">${api?'I dati restano sempre nel browser di questo dispositivo. Collegando un file dentro la cartella di Google Drive si sincronizzano anche con gli altri dispositivi (usane uno alla volta).':'Questo browser non può collegare un file: i dati restano nel browser, usa Esporta e Importa per spostarli.'}</p>
+ <p>File collegato: <b>${fh?fh.name+(perm?' · attivo':' · da riautorizzare'):'nessuno'}</b></p>
+ ${api?`<div class="row"><button data-a="lk" data-v="new">Crea file nuovo</button><button data-a="lk" data-v="old">Usa file esistente</button>${fh&&!perm?'<button data-a="auth">Riautorizza</button>':''}</div><p class="sub">Primo dispositivo: “Crea file nuovo” nella cartella ritmo di Drive. Altri dispositivi: “Usa file esistente” e scegli lo stesso file.</p>`:''}
+ <p>Backup manuale: ultimo ${bk}.</p><div class="row"><button data-a="exp">Esporta backup</button><button data-a="imp">Importa backup</button></div></div>`}
+function piano(){const a=ed.acts,ids=Object.keys(a).filter(i=>!a[i].x),ar=Object.keys(a).filter(i=>a[i].x);
+ const row=id=>`<tr><td><input data-f="n" data-id="${id}" value="${esc(a[id].n)}" maxlength="40" aria-label="Nome attività"><input data-f="g" data-id="${id}" value="${esc(a[id].g)}" maxlength="40" aria-label="Unità dell’obiettivo"><select data-f="c" data-id="${id}" aria-label="Categoria">${[['L','Lavoro'],['A','Apprendimento'],['T','Tempo libero']].map(([k,t])=>`<option value="${k}"${a[id].c===k?' selected':''}>${t}</option>`).join('')}</select><div class="row" style="justify-content:flex-start"><button data-a="rp" data-id="${id}">Sostituisci</button><button data-a="ar" data-id="${id}">Archivia</button></div></td>${[1,2,3,4,5].map(w=>`<td><input type="number" min="0" max="600" step="5" data-f="p" data-id="${id}" data-w="${w}" value="${(ed.plan[w].find(x=>x[0]===id)||[0,0])[1]}" aria-label="Minuti"></td>`).join('')}</tr>`;
+ return `<div id="ed"><div class="bar"><b>Piano settimanale</b><p class="sub">Le modifiche valgono da oggi: i giorni passati restano com’erano. Per correggere un refuso cambia il nome; per tracciare qualcosa di diverso usa Sostituisci, così lo storico resta separato. Minuti a 0: quel giorno l’attività non compare.</p></div><div class="tw"><table class="tbl"><tr><th>Attività</th>${['Lun','Mar','Mer','Gio','Ven'].map(x=>`<th>${x}</th>`).join('')}</tr>${ids.map(row).join('')}<tr><td>Totale del giorno</td>${[1,2,3,4,5].map(w=>`<td id="tt${w}"></td>`).join('')}</tr></table></div>${ar.length?`<p class="sub">Archiviate: ${ar.map(i=>`${esc(a[i].n)} <button data-a="ra" data-id="${i}">Ripristina</button>`).join(' ')}</p>`:''}<div class="row" style="justify-content:flex-start;margin-top:12px"><button class="on" data-a="sv">Salva modifiche</button><button data-a="ad">Aggiungi attività</button>${store.cfgPrev?'<button data-a="un">Torna al piano precedente</button>':''}<button data-a="v" data-v="oggi">Scarta</button></div></div>`}
+function openEd(){ed=JSON.parse(JSON.stringify(cfg()));for(let w=1;w<=5;w++)ed.plan[w]=ed.plan[w]||[]}
+function readEd(){document.querySelectorAll('#ed [data-f]').forEach(i=>{const id=i.dataset.id,f=i.dataset.f,a=ed.acts[id];if(!a)return;
+ if(f==='p'){const L=ed.plan[i.dataset.w],v=Math.min(600,Math.round(+i.value)),k=L.findIndex(x=>x[0]===id);if(v>0){if(k<0)L.push([id,v]);else L[k][1]=v}else if(k>=0)L.splice(k,1)}else a[f]=i.value})}
+function tot(){for(let w=1;w<=5;w++){let s=0;document.querySelectorAll('#ed [data-w="'+w+'"]').forEach(i=>s+=Math.max(0,Math.round(+i.value)||0));const t=$('tt'+w);if(t){t.textContent=hh(s)+(s>300?' ⚠':'');t.style.color=s>300?'var(--low)':''}}}
+const nid=()=>'a'+Date.now().toString(36);
+function sw(id){readEd();const n=(prompt('Nome della nuova attività che prende il posto di «'+ed.acts[id].n+'»:')||'').trim().slice(0,40);if(!n)return;
+ const k=nid();ed.acts[k]={n,c:ed.acts[id].c,g:ed.acts[id].g};ed.acts[id].x=1;ed.pool.push(k);
+ for(let w=1;w<=5;w++){const L=ed.plan[w],i=L.findIndex(x=>x[0]===id);if(i>=0)L.splice(i+1,0,[k,L[i][1]])}render()}
+function arc(id){readEd();if(!confirm('Archiviare «'+ed.acts[id].n+'»? Sparisce dal piano da oggi, lo storico resta.'))return;ed.acts[id].x=1;render()}
+function add(){readEd();const n=(prompt('Nome della nuova attività:')||'').trim().slice(0,40);if(!n)return;const k=nid();ed.acts[k]={n,c:'A',g:'obiettivi'};ed.pool.push(k);render()}
+function commit(c){store.cfgPrev=store.cfg;store.cfg=c;const t=today();if(days[t]){shot(t);days[t].u=Date.now()}store.u=Date.now();ed=null;view='oggi';persist();render()}
+function save(){readEd();const a=ed.acts;
+ if(Object.keys(a).some(i=>!a[i].x&&!String(a[i].n).trim())){alert('Ogni attività deve avere un nome.');return}
+ if([1,2,3,4,5].some(w=>ed.plan[w].reduce((s,x)=>s+(a[x[0]]&&!a[x[0]].x?x[1]:0),0)>300)&&!confirm('Alcuni giorni superano le 5 ore. Salvare comunque?'))return;
+ Object.keys(a).forEach(i=>{a[i].n=String(a[i].n).trim().slice(0,40);a[i].g=String(a[i].g).trim().slice(0,40)});
+ commit({u:Date.now(),acts:ed.acts,plan:ed.plan,pool:ed.pool})}
+function undo(){const p=store.cfgPrev;if(!p||!confirm('Tornare al piano precedente?'))return;commit({...p,u:Date.now()})}
+function render(){if(view==='piano'&&ed&&$('ed'))readEd();const d=pd(date);
+ $('nav').innerHTML=`<button data-a="n" data-d="-1" aria-label="Giorno precedente">‹</button><span><b>${DN[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}</b></span><button data-a="n" data-d="1" aria-label="Giorno successivo">›</button><button data-a="n" data-d="0">Oggi</button>${[['oggi','Giorno'],['sett','Settimana'],['piano','Piano'],['dati','Dati']].map(([k,t])=>`<button data-a="v" data-v="${k}" class="${view===k?'on':''}">${t}</button>`).join('')}`;
+ $('app').innerHTML=view==='oggi'?oggi():view==='sett'?sett():view==='piano'?piano():dati();if(view==='piano')tot()}
+function tick(){roll();const a=(days[date]&&days[date].a)||{};let run=false;
+ Object.keys(a).forEach(id=>{if(!a[id].run)return;run=true;const t=document.querySelector('[data-tile="'+id+'"]');if(!t)return;
+  const blk=+t.dataset.blk,v=vals(id,blk,date),c=t.querySelectorAll('circle');
+  if(blk&&(v.m>=blk)!==(t.dataset.done==='1')){render();return}
+  t.querySelector('.ctr').firstChild.nodeValue=fmt(v.m);c[1].setAttribute('stroke-dasharray',v.f+' 188.5');c[2].setAttribute('stroke-dasharray',v.b+' 238.8');t.querySelector('.sub').textContent=v.sub});
+ if(run&&view==='oggi'&&$('bar'))$('bar').innerHTML=bar()}
+document.addEventListener('click',ev=>{const b=ev.target.closest('[data-a]');if(!b)return;const a=b.dataset.a,id=b.dataset.id,v=b.dataset.v,dn=+b.dataset.d;
+ if(a==='t')toggle(id);
+ else if(a==='m')mut(date,id,e=>{e.ex=Math.max(0,e.ex+dn)});
+ else if(a==='g')mut(date,id,e=>{e.g=Math.max(0,e.g+dn)});
+ else if(a==='w')mut(date,id,e=>{e.w=e.w===v?'':v});
+ else if(a==='n'){if(dn===0)date=today();else{const x=pd(date);x.setDate(x.getDate()+dn);date=ds(x)}render()}
+ else if(a==='v'){if(v==='piano'&&view!=='piano')openEd();view=v;render()}
+ else if(a==='rp')sw(id);else if(a==='ar')arc(id);else if(a==='ad')add();else if(a==='ra'){readEd();ed.acts[id].x=0;render()}
+ else if(a==='sv')save();else if(a==='un')undo()
+ else if(a==='lk')link(v);
+ else if(a==='auth')chk(true);
+ else if(a==='exp')exp();
+ else if(a==='imp')$('imp').click();
+ else if(a==='st'){if(fh&&!perm)chk(true);else{view='dati';render()}}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){if(dirty)flush()}else{roll();chk(false);render()}});
+document.addEventListener('input',e=>{if(e.target.dataset&&e.target.dataset.f==='p')tot()});
+setInterval(tick,1000);
+(async()=>{try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+ try{const s=await idbGet('data');if(s)merge(JSON.parse(s));fh=(await idbGet('fh'))||null}catch(e){}
+ render();setSt(fh?'controllo file…':'salvato nel browser');if(fh)await chk(false)})();
+</script></body></html>
