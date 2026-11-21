@@ -56,6 +56,7 @@ h2{font-size:14px;font-weight:600;color:var(--mut);margin:18px 0 8px}
 #cd input,#cd select{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
 #cd input[type=number]{width:64px;text-align:center}
 #cd button{margin-left:4px}
+#ed input[type=checkbox]{width:auto;margin:0 4px 0 0}
 </style></head><body><main>
 <header><h1>Ritmo</h1><div class="nav" id="nav"></div></header>
 <div id="app"></div></main>
@@ -69,7 +70,8 @@ const POOL=['ann','prop','tre','all','alp'];
 const WHY=['Imprevisto','Stanchezza','Poco tempo','Altro'];
 const DN=['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
 const CC={L:'var(--lav)',A:'var(--app)',T:'var(--free)'};
-const V=3;
+const V=4;
+const WD=[1,2,3,4,5,6,7];
 const DEF=()=>{const acts={},plan={};Object.keys(M).forEach(k=>acts[k]={n:M[k][0],c:M[k][1],g:M[k][2]});for(let w=1;w<=5;w++)plan[w]=[...S[w],...F[w]];return{u:0,acts,plan,pool:[...POOL]}};
 const norm=c=>({...c,acts:c.acts||{},plan:c.plan||{},pool:c.pool||[]});
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -111,15 +113,14 @@ const get=(dt,id)=>Object.assign({sec:0,run:null,ex:0,g:0,w:''},(days[dt]&&days[
 const mins=e=>(e.sec+(e.run?(Date.now()-e.run)/1000:0))/60+e.ex;
 const cfg=()=>store.cfg;
 const A=(dt,id)=>(days[dt]&&dt<today()&&days[dt].acts&&days[dt].acts[id])||cfg().acts[id]||{n:id,c:'A',g:''};
-const cur=dt=>{const w=pd(dt).getDay(),c=cfg(),a=c.acts;
- if(w<1||w>5)return{main:[],free:[],pool:c.pool.filter(i=>a[i]&&!a[i].x).map(i=>[i,0])};
+const cur=dt=>{const w=pd(dt).getDay()||7,c=cfg(),a=c.acts;
  const l=(c.plan[w]||[]).filter(x=>a[x[0]]&&!a[x[0]].x).map(x=>[x[0],x[1]]);
- return{main:l.filter(x=>a[x[0]].c!=='T'),free:l.filter(x=>a[x[0]].c==='T'),pool:[]}};
+ return{main:l.filter(x=>a[x[0]].c!=='T'),free:l.filter(x=>a[x[0]].c==='T'),pool:w>5?c.pool.filter(i=>a[i]&&!a[i].x&&!l.some(x=>x[0]===i)).map(i=>[i,0]):[]}};
 function sa(dt){const d=days[dt],p=d.plan,o={};
  [...p.main,...p.free,...p.pool,...Object.keys(d.a||{}).map(i=>[i])].forEach(x=>{if(cfg().acts[x[0]])o[x[0]]={...cfg().acts[x[0]]}});d.acts=o}
 function shot(dt){const p=plan(dt);days[dt].plan={main:p.main,free:p.free,pool:p.pool};sa(dt)}
 function plan(dt){const d=days[dt],s=d&&d.plan&&{main:d.plan.main||[],free:d.plan.free||[],pool:d.plan.pool||[]};if(s&&dt<today())return s;
- if(s&&d.ov){const f=l=>l.filter(x=>!(cfg().acts[x[0]]||{}).x||mins(get(dt,x[0]))>0);return{main:f(s.main),free:f(s.free),pool:s.pool}}
+ if(s&&d.ov){const f=l=>l.filter(x=>!(cfg().acts[x[0]]||{}).x||mins(get(dt,x[0]))>0);return{main:f(s.main),free:f(s.free),pool:f(s.pool)}}
  const c=cur(dt);
  if(s&&dt===today())['main','free'].forEach(k=>s[k].forEach(x=>{if(mins(get(dt,x[0]))>0&&![...c.main,...c.free].some(y=>y[0]===x[0]))c[k].push([x[0],x[1]])}));return c}
 function mut(dt,id,fn){const d=days[dt]=days[dt]||{a:{}};d.a=d.a||{};if(!d.plan||(dt>=today()&&!d.ov))shot(dt);const e=get(dt,id);fn(e);d.a[id]=e;d.u=Date.now();store.u=d.u;persist();render()}
@@ -148,17 +149,17 @@ function bar(){const p=plan(date),base={L:0,A:0,T:0};let bonus=0,pl=0;
  [...p.main,...p.free,...p.pool].forEach(([id,b])=>{const m=mins(get(date,id));const k=A(date,id).c;base[k in base?k:'A']+=Math.min(m,b);bonus+=Math.max(m-b,0);pl+=b});
  const tot=base.L+base.A+base.T+bonus,sc=Math.max(300,tot),w=x=>x/sc*100;
  return `<b>${hh(tot)}</b> <span class="sub">su 5 h${tot>300?' · oltre le 5 h':''} · pianificate ${hh(pl)}</span><div class="track"><i style="width:${w(base.L)}%;background:var(--lav)"></i><i style="width:${w(base.A)}%;background:var(--app)"></i><i style="width:${w(base.T)}%;background:var(--free)"></i><i style="width:${w(bonus)}%;background:var(--bonus)"></i></div><div class="lg"><span><b style="background:var(--lav)"></b>lavoro</span><span><b style="background:var(--app)"></b>apprendimento</span><span><b style="background:var(--free)"></b>tempo libero</span><span><b style="background:var(--bonus)"></b>bonus</span></div>`}
-function nextDays(d0){const o=[],x=pd(d0);for(let i=0;o.length<5&&i<15;i++){x.setDate(x.getDate()+1);const w=x.getDay();if(w>0&&w<6)o.push([ds(x),DN[w]+' '+x.getDate()+'/'+(x.getMonth()+1)])}return o}
-const fnd=(p,id)=>{for(const k of['main','free']){const i=p[k].findIndex(x=>x[0]===id);if(i>=0)return[k,i]}return null};
+function nextDays(d0){const o=[],x=pd(d0);for(let i=0;i<7;i++){x.setDate(x.getDate()+1);const w=x.getDay();o.push([ds(x),DN[w]+' '+x.getDate()+'/'+(x.getMonth()+1)])}return o}
+const fnd=(p,id,ks=['main','free','pool'])=>{for(const k of ks){const i=p[k].findIndex(x=>x[0]===id);if(i>=0)return[k,i]}return null};
 function ovr(dt,fn){const d=days[dt]=days[dt]||{a:{}};d.a=d.a||{};if(!d.ov){shot(dt);d.ov=1}fn(d.plan);sa(dt);d.u=Date.now();store.u=d.u;persist()}
 function rm(p,id,dt){const f=fnd(p,id);if(!f)return 0;const b=p[f[0]][f[1]][1];if(mins(get(dt,id))>0)p[f[0]][f[1]][1]=0;else p[f[0]].splice(f[1],1);return b}
-function put(p,id,b,dt){const f=fnd(p,id);if(f)p[f[0]][f[1]][1]+=b;else p[A(dt,id).c==='T'?'free':'main'].push([id,b])}
-function cd(p){const L=[...p.main,...p.free],ac=cfg().acts,ids=Object.keys(ac).filter(i=>!ac[i].x&&!L.some(x=>x[0]===i)),nd=nextDays(date),
+function put(p,id,b,dt){const f=fnd(p,id,['main','free']);p.pool=(p.pool||[]).filter(x=>x[0]!==id);if(f)p[f[0]][f[1]][1]+=b;else p[A(dt,id).c==='T'?'free':'main'].push([id,b])}
+function cd(p){const B=[...p.main,...p.free],L=[...B,...p.pool],ac=cfg().acts,ids=Object.keys(ac).filter(i=>!ac[i].x&&!B.some(x=>x[0]===i)),nd=nextDays(date),
  op=(a,f)=>a.map(f).join(''),on=i=>`<option value="${i}">${esc(ac[i].n)}</option>`;
- const row=([id,b])=>`<tr><td>${esc(A(date,id).n)}</td><td>${b?`<input type="number" min="5" max="600" step="5" data-f="b" data-id="${id}" value="${b}" aria-label="Blocco in minuti">`:'extra'}</td><td>${b?`<button data-a="tg" data-id="${id}">Togli</button>`:''}</td><td>${b?`<select id="mv${id}">${op(nd,d=>`<option value="${d[0]}">${d[1]}</option>`)}</select><button data-a="mv" data-id="${id}">Sposta</button>`:''}</td><td>${b&&ids.length?`<select id="rp${id}">${op(ids,on)}</select><button data-a="sp" data-id="${id}">Sostituisci</button>`:''}</td></tr>`;
- return `<div class="bar" id="cd"><b>Cambia attività</b><p class="sub">Vale solo per questo giorno: il piano settimanale non cambia. Togli, Sposta e Sostituisci lasciano come extra il tempo già registrato.</p><div class="tw"><table class="tbl"><tr><th>Attività</th><th>Blocco (min)</th><th></th><th>Sposta a</th><th>Sostituisci con</th></tr>${L.map(row).join('')}</table></div>${ids.length?`<div class="row" style="justify-content:flex-start;margin-top:10px"><select id="adn">${op(ids,on)}</select><input type="number" id="adm" min="5" max="600" step="5" value="30" aria-label="Minuti"><button data-a="a2">Aggiungi al giorno</button></div>`:''}</div>`}
-function oggi(){const p=plan(date),w=pd(date).getDay();let o=`<div class="bar" id="bar">${bar()}</div>`;
- if(w>0&&w<6)o+=`<div class="row" style="justify-content:flex-start;margin-bottom:12px"><button data-a="cg" class="${chg?'on':''}">Cambia attività ${date===today()?'di oggi':'del giorno'}</button></div>${chg?cd(p):''}`;
+ const row=([id,b])=>`<tr><td>${esc(A(date,id).n)}</td><td>${b?`<input type="number" min="5" max="600" step="5" data-f="b" data-id="${id}" value="${b}" aria-label="Blocco in minuti">`:'extra'}</td><td>${b||p.pool.some(x=>x[0]===id)?`<button data-a="tg" data-id="${id}">Togli</button>`:''}</td><td>${b?`<select id="mv${id}">${op(nd,d=>`<option value="${d[0]}">${d[1]}</option>`)}</select><button data-a="mv" data-id="${id}">Sposta</button>`:''}</td><td>${b&&ids.length?`<select id="rp${id}">${op(ids,on)}</select><button data-a="sp" data-id="${id}">Sostituisci</button>`:''}</td></tr>`;
+ return `<div class="bar" id="cd"><b>Cambia attività</b><p class="sub">Vale solo per questo giorno: il piano settimanale non cambia. Togli, Sposta e Sostituisci lasciano come extra il tempo già registrato. Le voci “extra” sono solo opzioni: Togli le nasconde per questo giorno, Aggiungi al giorno ne fa un blocco.</p><div class="tw"><table class="tbl"><tr><th>Attività</th><th>Blocco (min)</th><th></th><th>Sposta a</th><th>Sostituisci con</th></tr>${L.map(row).join('')}</table></div>${ids.length?`<div class="row" style="justify-content:flex-start;margin-top:10px"><select id="adn">${op(ids,on)}</select><input type="number" id="adm" min="5" max="600" step="5" value="30" aria-label="Minuti"><button data-a="a2">Aggiungi al giorno</button></div>`:''}</div>`}
+function oggi(){const p=plan(date);let o=`<div class="bar" id="bar">${bar()}</div>`;
+ o+=`<div class="row" style="justify-content:flex-start;margin-bottom:12px"><button data-a="cg" class="${chg?'on':''}">Cambia attività ${date===today()?'di oggi':'del giorno'}</button></div>${chg?cd(p):''}`;
  if(p.main.length)o+=`<div class="grid">${p.main.map(([i,b])=>tile(i,b,date)).join('')}</div>`;
  if(p.free.length)o+=`<h2>Tempo libero (conta nelle 5 ore)</h2><div class="grid">${p.free.map(([i,b])=>tile(i,b,date)).join('')}</div>`;
  if(p.pool.length)o+=`<h2>Weekend: tempo extra, in quest’ordine</h2><div class="grid">${p.pool.map(([i,b])=>tile(i,b,date)).join('')}</div>`;
@@ -181,22 +182,23 @@ function dati(){const api='showSaveFilePicker' in window,bk=store.bk?Math.floor(
  ${api?`<div class="row"><button data-a="lk" data-v="new">Crea file nuovo</button><button data-a="lk" data-v="old">Usa file esistente</button>${fh&&!perm?'<button data-a="auth">Riautorizza</button>':''}</div><p class="sub">Primo dispositivo: “Crea file nuovo” nella cartella ritmo di Drive. Altri dispositivi: “Usa file esistente” e scegli lo stesso file.</p>`:''}
  <p>Backup manuale: ultimo ${bk}.</p><div class="row"><button data-a="exp">Esporta backup</button><button data-a="imp">Importa backup</button></div></div>`}
 function piano(){const a=ed.acts,ids=Object.keys(a).filter(i=>!a[i].x),ar=Object.keys(a).filter(i=>a[i].x);
- const row=id=>`<tr><td><input data-f="n" data-id="${id}" value="${esc(a[id].n)}" maxlength="40" aria-label="Nome attività"><input data-f="g" data-id="${id}" value="${esc(a[id].g)}" maxlength="40" aria-label="Unità dell’obiettivo"><select data-f="c" data-id="${id}" aria-label="Categoria">${[['L','Lavoro'],['A','Apprendimento'],['T','Tempo libero']].map(([k,t])=>`<option value="${k}"${a[id].c===k?' selected':''}>${t}</option>`).join('')}</select><div class="row" style="justify-content:flex-start"><button data-a="rp" data-id="${id}">Sostituisci</button><button data-a="ar" data-id="${id}">Archivia</button></div></td>${[1,2,3,4,5].map(w=>`<td><input type="number" min="0" max="600" step="5" data-f="p" data-id="${id}" data-w="${w}" value="${(ed.plan[w].find(x=>x[0]===id)||[0,0])[1]}" aria-label="Minuti"></td>`).join('')}</tr>`;
- return `<div id="ed"><div class="bar"><b>Piano settimanale</b><p class="sub">Le modifiche valgono da oggi: i giorni passati restano com’erano. Per correggere un refuso cambia il nome; per tracciare qualcosa di diverso usa Sostituisci, così lo storico resta separato. Minuti a 0: quel giorno l’attività non compare.</p></div><div class="tw"><table class="tbl"><tr><th>Attività</th>${['Lun','Mar','Mer','Gio','Ven'].map(x=>`<th>${x}</th>`).join('')}</tr>${ids.map(row).join('')}<tr><td>Totale del giorno</td>${[1,2,3,4,5].map(w=>`<td id="tt${w}"></td>`).join('')}</tr></table></div>${ar.length?`<p class="sub">Archiviate: ${ar.map(i=>`${esc(a[i].n)} <button data-a="ra" data-id="${i}">Ripristina</button>`).join(' ')}</p>`:''}<div class="row" style="justify-content:flex-start;margin-top:12px"><button class="on" data-a="sv">Salva modifiche</button><button data-a="ad">Aggiungi attività</button>${store.cfgPrev?'<button data-a="un">Torna al piano precedente</button>':''}<button data-a="v" data-v="oggi">Scarta</button></div></div>`}
-function openEd(){ed=JSON.parse(JSON.stringify(cfg()));for(let w=1;w<=5;w++)ed.plan[w]=ed.plan[w]||[]}
+ const row=id=>`<tr><td><input data-f="n" data-id="${id}" value="${esc(a[id].n)}" maxlength="40" aria-label="Nome attività"><input data-f="g" data-id="${id}" value="${esc(a[id].g)}" maxlength="40" aria-label="Unità dell’obiettivo"><select data-f="c" data-id="${id}" aria-label="Categoria">${[['L','Lavoro'],['A','Apprendimento'],['T','Tempo libero']].map(([k,t])=>`<option value="${k}"${a[id].c===k?' selected':''}>${t}</option>`).join('')}</select><div class="row" style="justify-content:flex-start"><button data-a="rp" data-id="${id}">Sostituisci</button><button data-a="ar" data-id="${id}">Archivia</button></div><label class="sub"><input type="checkbox" data-f="pw" data-id="${id}"${ed.pool.includes(id)?' checked':''}> extra nel weekend</label></td>${WD.map(w=>`<td><input type="number" min="0" max="600" step="5" data-f="p" data-id="${id}" data-w="${w}" value="${(ed.plan[w].find(x=>x[0]===id)||[0,0])[1]}" aria-label="Minuti"></td>`).join('')}</tr>`;
+ return `<div id="ed"><div class="bar"><b>Piano settimanale</b><p class="sub">Le modifiche valgono da oggi: i giorni passati restano com’erano. Per correggere un refuso cambia il nome; per tracciare qualcosa di diverso usa Sostituisci, così lo storico resta separato. Minuti a 0: quel giorno l’attività non è pianificata. Sab e Dom: senza minuti l’attività resta un extra, se è spuntato “extra nel weekend”.</p></div><div class="tw"><table class="tbl"><tr><th>Attività</th>${['Lun','Mar','Mer','Gio','Ven','Sab','Dom'].map(x=>`<th>${x}</th>`).join('')}</tr>${ids.map(row).join('')}<tr><td>Totale del giorno</td>${WD.map(w=>`<td id="tt${w}"></td>`).join('')}</tr></table></div>${ar.length?`<p class="sub">Archiviate: ${ar.map(i=>`${esc(a[i].n)} <button data-a="ra" data-id="${i}">Ripristina</button>`).join(' ')}</p>`:''}<div class="row" style="justify-content:flex-start;margin-top:12px"><button class="on" data-a="sv">Salva modifiche</button><button data-a="ad">Aggiungi attività</button>${store.cfgPrev?'<button data-a="un">Torna al piano precedente</button>':''}<button data-a="v" data-v="oggi">Scarta</button></div></div>`}
+function openEd(){ed=JSON.parse(JSON.stringify(cfg()));for(let w=1;w<=7;w++)ed.plan[w]=ed.plan[w]||[]}
 function readEd(){document.querySelectorAll('#ed [data-f]').forEach(i=>{const id=i.dataset.id,f=i.dataset.f,a=ed.acts[id];if(!a)return;
+ if(f==='pw'){const j=ed.pool.indexOf(id);if(i.checked&&j<0)ed.pool.push(id);else if(!i.checked&&j>=0)ed.pool.splice(j,1);return}
  if(f==='p'){const L=ed.plan[i.dataset.w],v=Math.min(600,Math.round(+i.value)),k=L.findIndex(x=>x[0]===id);if(v>0){if(k<0)L.push([id,v]);else L[k][1]=v}else if(k>=0)L.splice(k,1)}else a[f]=i.value})}
-function tot(){for(let w=1;w<=5;w++){let s=0;document.querySelectorAll('#ed [data-w="'+w+'"]').forEach(i=>s+=Math.max(0,Math.round(+i.value)||0));const t=$('tt'+w);if(t){t.textContent=hh(s)+(s>300?' ⚠':'');t.style.color=s>300?'var(--low)':''}}}
+function tot(){for(let w=1;w<=7;w++){let s=0;document.querySelectorAll('#ed [data-w="'+w+'"]').forEach(i=>s+=Math.max(0,Math.round(+i.value)||0));const t=$('tt'+w);if(t){t.textContent=hh(s)+(s>300?' ⚠':'');t.style.color=s>300?'var(--low)':''}}}
 const nid=()=>'a'+Date.now().toString(36);
 function sw(id){readEd();const n=(prompt('Nome della nuova attività che prende il posto di «'+ed.acts[id].n+'»:')||'').trim().slice(0,40);if(!n)return;
  const k=nid();ed.acts[k]={n,c:ed.acts[id].c,g:ed.acts[id].g};ed.acts[id].x=1;ed.pool.push(k);
- for(let w=1;w<=5;w++){const L=ed.plan[w],i=L.findIndex(x=>x[0]===id);if(i>=0)L.splice(i+1,0,[k,L[i][1]])}render()}
+ for(let w=1;w<=7;w++){const L=ed.plan[w],i=L.findIndex(x=>x[0]===id);if(i>=0)L.splice(i+1,0,[k,L[i][1]])}render()}
 function arc(id){readEd();if(!confirm('Archiviare «'+ed.acts[id].n+'»? Sparisce dal piano da oggi, lo storico resta.'))return;ed.acts[id].x=1;render()}
 function add(){readEd();const n=(prompt('Nome della nuova attività:')||'').trim().slice(0,40);if(!n)return;const k=nid();ed.acts[k]={n,c:'A',g:'obiettivi'};ed.pool.push(k);render()}
 function commit(c){store.cfgPrev=store.cfg;store.cfg=c;const t=today();if(days[t]&&!days[t].ov){shot(t);days[t].u=Date.now()}store.u=Date.now();ed=null;view='oggi';persist();render()}
 function save(){readEd();const a=ed.acts;
  if(Object.keys(a).some(i=>!a[i].x&&!String(a[i].n).trim())){alert('Ogni attività deve avere un nome.');return}
- if([1,2,3,4,5].some(w=>ed.plan[w].reduce((s,x)=>s+(a[x[0]]&&!a[x[0]].x?x[1]:0),0)>300)&&!confirm('Alcuni giorni superano le 5 ore. Salvare comunque?'))return;
+ if(WD.some(w=>ed.plan[w].reduce((s,x)=>s+(a[x[0]]&&!a[x[0]].x?x[1]:0),0)>300)&&!confirm('Alcuni giorni superano le 5 ore. Salvare comunque?'))return;
  Object.keys(a).forEach(i=>{a[i].n=String(a[i].n).trim().slice(0,40);a[i].g=String(a[i].g).trim().slice(0,40)});
  commit({u:Date.now(),acts:ed.acts,plan:ed.plan,pool:ed.pool})}
 function undo(){const p=store.cfgPrev;if(!p||!confirm('Tornare al piano precedente?'))return;commit({...p,u:Date.now()})}
