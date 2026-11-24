@@ -57,6 +57,9 @@ h2{font-size:14px;font-weight:600;color:var(--mut);margin:18px 0 8px}
 #cd input[type=number]{width:64px;text-align:center}
 #cd button{margin-left:4px}
 #ed input[type=checkbox]{width:auto;margin:0 4px 0 0}
+.bar .tw{margin-top:8px}
+.mp{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px}
+.mc{border-radius:6px;height:30px;display:flex;align-items:center;justify-content:center;font-size:12px}
 </style></head><body><main>
 <header><h1>Ritmo</h1><div class="nav" id="nav"></div></header>
 <div id="app"></div></main>
@@ -79,7 +82,7 @@ const ds=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+Strin
 const pd=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c)};
 const today=()=>ds(new Date());
 const $=id=>document.getElementById(id),setSt=t=>$('st').textContent=t;
-let store={v:V,u:0,bk:0,days:{},cfg:DEF()},days=store.days,blocked='',ed=null,chg=false,lastToday=today(),date=lastToday,view='oggi',fh=null,perm=false,fileMod=0,dirty=false,tm=null,chain=Promise.resolve();
+let store={v:V,u:0,bk:0,days:{},cfg:DEF()},days=store.days,blocked='',ed=null,chg=false,per='mese',lastToday=today(),date=lastToday,view='oggi',fh=null,perm=false,fileMod=0,dirty=false,tm=null,chain=Promise.resolve();
 
 /* ---------- archiviazione: browser (IndexedDB) + file nella cartella Drive ---------- */
 let _d;const idb=()=>_d=_d||new Promise((ok,no)=>{const r=indexedDB.open('ritmo',1);r.onupgradeneeded=()=>r.result.createObjectStore('k');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)});
@@ -162,19 +165,59 @@ function oggi(){const p=plan(date);let o=`<div class="bar" id="bar">${bar()}</di
  o+=`<div class="row" style="justify-content:flex-start;margin-bottom:12px"><button data-a="cg" class="${chg?'on':''}">Cambia attività ${date===today()?'di oggi':'del giorno'}</button></div>${chg?cd(p):''}`;
  if(p.main.length)o+=`<div class="grid">${p.main.map(([i,b])=>tile(i,b,date)).join('')}</div>`;
  if(p.free.length)o+=`<h2>Tempo libero (conta nelle 5 ore)</h2><div class="grid">${p.free.map(([i,b])=>tile(i,b,date)).join('')}</div>`;
- if(p.pool.length)o+=`<h2>Weekend: tempo extra, in quest’ordine</h2><div class="grid">${p.pool.map(([i,b])=>tile(i,b,date)).join('')}</div>`;
+ if(p.pool.length)o+=`<h2>Weekend: attività extra, tracciate a parte</h2><div class="grid">${p.pool.map(([i,b])=>tile(i,b,date)).join('')}</div>`;
  return o}
+const wk=dt=>{const x=pd(dt);x.setDate(x.getDate()-(x.getDay()||7)+1);return ds(x)};
+const dp=(dt,n)=>{const x=pd(dt);x.setDate(x.getDate()+n);return ds(x)};
+const fd=dt=>{const x=pd(dt);return x.getDate()+'/'+(x.getMonth()+1)};
+function rng(){const d=pd(date);let a,b;
+ if(per==='mese'){a=ds(new Date(d.getFullYear(),d.getMonth(),1));b=ds(new Date(d.getFullYear(),d.getMonth()+1,0))}
+ else if(per==='8w'){a=dp(wk(date),-49);b=dp(wk(date),6)}
+ else{a=wk(date);b=dp(a,6)}
+ const w=[];for(let m=wk(a);m<=b;m=dp(m,7))w.push(m);return{a,b,w}}
+function cm(dt){const o={L:0,A:0,T:0};Object.keys((days[dt]&&days[dt].a)||{}).forEach(id=>{const c=A(dt,id).c;if(c in o)o[c]+=mins(get(dt,id))});return o}
+function ana(){const R=rng(),T=today(),W=R.w,st={},cnt={},mp={};let miss=0,nor=0;
+ const X=id=>st[id]=st[id]||{pl:W.map(()=>0),ok:W.map(()=>0),g:0,n:'',u:''};
+ for(let dt=R.a;dt<=R.b;dt=dp(dt,1)){const p=plan(dt),wi=W.indexOf(wk(dt)),o=mp[dt]={pl:0,ok:0},wd=pd(dt).getDay()%6===0;if(wd){const c=cm(dt);o.we=c.L+c.A+c.T>0}
+  [...p.main,...p.free].forEach(([id,b])=>{if(b<=0||dt>T||wd)return;const e=get(dt,id),m=mins(e);if(dt===T&&m<b)return;
+   const x=X(id),q=A(dt,id);x.n=q.n;x.u=q.g;x.pl[wi]++;o.pl++;if(m>=b){x.ok[wi]++;o.ok++}else{miss++;if(e.w)cnt[e.w]=(cnt[e.w]||0)+1;else nor++}});
+  Object.keys((days[dt]&&days[dt].a)||{}).forEach(id=>{const x=X(id),q=A(dt,id);x.n=q.n;x.u=q.g;x.g+=get(dt,id).g})}
+ const last={};Object.keys(days).forEach(dt=>Object.keys(days[dt].a||{}).forEach(id=>{if(mins(get(dt,id))>0&&(!last[id]||dt>last[id]))last[id]=dt}));
+ const ac=cfg().acts,ids=Object.keys(ac).filter(i=>!ac[i].x),ago=id=>last[id]?Math.round((pd(T)-pd(last[id]))/864e5):1e9;
+ const fer=[...ids].sort((a,b)=>ago(b)-ago(a)).map(id=>{const n=ago(id),t=n>=1e9?'mai':n===0?'oggi':n===1?'ieri':n+' giorni fa';
+  return `<tr><td>${esc(ac[id].n)}</td><td style="color:${n>7?'var(--free)':n>3?'var(--low)':'var(--ok)'}">${t}</td></tr>`}).join('');
+ const cids=[...Object.keys(ac),...Object.keys(st).filter(i=>!ac[i])].filter(i=>st[i]&&st[i].pl.some(x=>x));
+ const cost=cids.map(id=>{const x=st[id],P=x.pl.reduce((a,b)=>a+b),K=x.ok.reduce((a,b)=>a+b),pc=Math.round(K/P*100);
+  return `<tr><td>${esc(x.n)}</td>${W.map((_,i)=>`<td style="color:${!x.pl[i]?'var(--mut)':x.ok[i]===x.pl[i]?'var(--ok)':x.ok[i]/x.pl[i]>=.5?'var(--low)':'var(--free)'}">${x.pl[i]?x.ok[i]+'/'+x.pl[i]:'·'}</td>`).join('')}<td><b>${pc}%</b>${pc<50&&P>=2?' ⚠':''}</td></tr>`}).join('');
+ const col=o=>o&&o.we?'var(--bonus)':!o||!o.pl?'var(--line)':o.ok===o.pl?'var(--ok)':o.ok/o.pl>=.5?'var(--low)':o.ok?'var(--free)':'var(--mut)';
+ const map=W.map(w=>[0,1,2,3,4,5,6].map(k=>{const dt=dp(w,k);if(dt<R.a||dt>R.b)return'<div></div>';const o=mp[dt];
+  return `<div class="mc" style="background:${col(o)};color:${o&&o.we?'#fff':o&&o.pl?'#1b2430':'var(--mut)'};${dt===T?'outline:2px solid var(--ink);':''}">${pd(dt).getDate()}</div>`}).join('')).join('');
+ const W8=[0,1,2,3,4,5,6,7].map(i=>dp(wk(date),(i-7)*7)),tw=W8.map(w=>{const o={L:0,A:0,T:0,E:0};for(let k=0;k<7;k++){const c=cm(dp(w,k));if(k<5){o.L+=c.L;o.A+=c.A;o.T+=c.T}else o.E+=c.L+c.A+c.T}return o}),sc=Math.max(1500,...tw.map(o=>o.L+o.A+o.T+o.E));
+ const tr=tw.map((o,i)=>`<div class="row" style="justify-content:flex-start;margin-top:6px"><span class="sub" style="width:44px">${fd(W8[i])}</span><div class="track" style="flex:1;margin:0;position:relative">${['L','A','T'].map(c=>`<i style="width:${o[c]/sc*100}%;background:${CC[c]}"></i>`).join('')}<i style="width:${o.E/sc*100}%;background:var(--mut);opacity:.45"></i><u style="position:absolute;top:0;bottom:0;left:${1500/sc*100}%;width:2px;background:var(--ink);opacity:.55"></u></div><span class="sub" style="width:120px;text-align:right">${hh(o.L+o.A+o.T)}${o.E?' +'+hh(o.E):''}</span></div>`).join('');
+ const gl=Object.keys(st).filter(i=>st[i].g>0).map(i=>`${esc(st[i].n)}: <b>${st[i].g}</b> ${esc(st[i].u)}`).join(' · ')||'nessuno registrato';
+ const mo=WHY.map(w=>`${w} <b>${cnt[w]||0}</b>`).join(' · ');
+ const lab=per==='mese'?pd(R.a).toLocaleDateString('it-IT',{month:'long',year:'numeric'}):fd(R.a)+' – '+fd(R.b);
+ const lg=[['var(--ok)','tutti i blocchi'],['var(--low)','almeno metà'],['var(--free)','meno della metà'],['var(--mut)','nessuno'],['var(--line)','non pianificato'],['var(--bonus)','weekend con attività (a parte)']].map(([c,t])=>`<span><b style="background:${c}"></b>${t}</span>`).join('');
+ return `<div class="row" style="justify-content:flex-start;margin-bottom:12px">${[['sett','Settimana'],['mese','Mese'],['8w','8 settimane']].map(([k,t])=>`<button data-a="pe" data-v="${k}" class="${per===k?'on':''}">${t}</button>`).join('')}<span class="sub">${lab} · le frecce ‹ › cambiano periodo</span></div>
+ <div class="bar"><b>Attività ferme</b> <span class="sub">da quando non registri tempo</span><div class="tw"><table class="tbl">${fer}</table></div></div>
+ <div class="bar"><b>Costanza</b> <span class="sub">blocchi fatti su pianificati nei feriali, per settimana (dal lunedì indicato); oggi conta solo se completato; ⚠ sotto il 50%</span><div class="tw"><table class="tbl"><tr><th>Attività</th>${W.map(w=>`<th>${fd(w)}</th>`).join('')}<th>Totale</th></tr>${cost||'<tr><td>nessun blocco pianificato nel periodo</td></tr>'}</table></div></div>
+ <div class="bar"><b>Mappa dei giorni</b> <span class="sub">colore = blocchi completati nel giorno</span><div class="mp">${['Lun','Mar','Mer','Gio','Ven','Sab','Dom'].map(x=>`<div class="sub" style="text-align:center">${x}</div>`).join('')}${map}</div><div class="lg">${lg}</div></div>
+ <div class="bar"><b>Ore per settimana</b> <span class="sub">ultime 8 settimane: feriali per categoria, weekend in grigio a parte, linea a 25 h</span>${tr}<div class="lg"><span><b style="background:var(--lav)"></b>lavoro</span><span><b style="background:var(--app)"></b>apprendimento</span><span><b style="background:var(--free)"></b>tempo libero</span><span><b style="background:var(--mut)"></b>weekend</span></div></div>
+ <div class="bar"><b>Obiettivi e blocchi saltati</b> <span class="sub">nel periodo scelto</span><p>Obiettivi contati: ${gl}</p><p>Blocchi saltati: <b>${miss}</b> · motivi: ${mo} · senza motivo <b>${nor}</b></p></div>`}
+function catBox(cat,dc){const tt=cat.L+cat.A+cat.T,pc=x=>tt?Math.round(x/tt*100)+'%':'–',sg=(o,sc)=>['L','A','T'].map(c=>`<i style="width:${o[c]/sc*100}%;background:${CC[c]}"></i>`).join(''),sc=Math.max(300,...dc.map(o=>o.L+o.A+o.T));
+ const lg=[['L','lavoro'],['A','apprendimento'],['T','tempo libero']].map(([c,n])=>`<span><b style="background:${CC[c]}"></b>${n} ${hh(cat[c])} · ${pc(cat[c])}</span>`).join('');
+ return `<div class="bar"><b>Per categoria</b> <span class="sub">solo feriali</span><div class="track">${sg(cat,tt||1)}</div><div class="lg">${lg}</div></div><div class="bar"><b>Per giorno</b> <span class="sub">sab e dom a parte</span>${dc.map((o,k)=>`<div class="row" style="justify-content:flex-start;margin-top:6px"><span class="sub" style="width:32px">${['Lun','Mar','Mer','Gio','Ven','Sab','Dom'][k]}</span><div class="track" style="flex:1;margin:0">${sg(o,sc)}</div><span class="sub">${hh(o.L+o.A+o.T)}</span></div>`).join('')}</div>`}
 function sett(){const d0=pd(date),w=d0.getDay()||7,mon=new Date(d0);mon.setDate(d0.getDate()-w+1);
- const dts=[0,1,2,3,4,5,6].map(k=>{const x=new Date(mon);x.setDate(mon.getDate()+k);return ds(x)}),T=today();let tp=0,td=0,bn=0,tm=0;const dm=[0,0,0,0,0,0,0];
+ const dts=[0,1,2,3,4,5,6].map(k=>{const x=new Date(mon);x.setDate(mon.getDate()+k);return ds(x)}),T=today();let tp=0,td=0,bn=0,tm=0;const dm=[0,0,0,0,0,0,0],cat={L:0,A:0,T:0},dc=[0,1,2,3,4,5,6].map(()=>({L:0,A:0,T:0}));
  const used=new Set();dts.forEach(dt=>{const p=plan(dt);[...p.main,...p.free].forEach(x=>used.add(x[0]));Object.keys((days[dt]&&days[dt].a)||{}).forEach(i=>used.add(i))});
  const ids=[...Object.keys(cfg().acts).filter(i=>used.has(i)),...[...used].filter(i=>!cfg().acts[i])];
- const rows=ids.map(id=>{let pl=0,ok=0,mm=0;const cells=dts.map((dt,k)=>{const p=plan(dt),b=([...p.main,...p.free].find(x=>x[0]===id)||[0,0])[1],e=get(dt,id),m=mins(e);mm+=m;dm[k]+=m;bn+=Math.max(m-b,0);tm+=e.sec/60+(e.run?(Date.now()-e.run)/60000:0);
+ const rows=ids.map(id=>{let pl=0,ok=0,mm=0;const cells=dts.map((dt,k)=>{const p=plan(dt),we=k>4,b=we?0:([...p.main,...p.free].find(x=>x[0]===id)||[0,0])[1],e=get(dt,id),m=mins(e);dm[k]+=m;const cc=A(dt,id).c;if(cc in cat)dc[k][cc]+=m;if(!we){mm+=m;bn+=Math.max(m-b,0);tm+=e.sec/60+(e.run?(Date.now()-e.run)/60000:0);if(cc in cat)cat[cc]+=m}
   if(!b)return `<td>${m>0?'<span class="d" style="background:var(--bonus)"></span>':'<span class="sub">·</span>'}</td>`;
   pl++;if(m>=b)ok++;tp+=b;td+=Math.min(m,b);
   const c=m>b?'var(--bonus)':m>=b?'var(--ok)':m>0?'var(--low)':dt<T?'var(--mut)':'transparent';
   return `<td><span class="d" style="background:${c};border:2px solid ${m>0||dt<T?c:'var(--line)'}"></span></td>`}).join('');
   return `<tr><td>${esc(A(dts.find(dt=>{const p=plan(dt);return[...p.main,...p.free].some(x=>x[0]===id)})||date,id).n)}</td>${cells}<td>${ok}/${pl}</td><td>${mm>=.5?hh(mm):'·'}</td></tr>`}).join('');
- return `<div class="bar"><b>${hh(td)}</b> <span class="sub">fatte su ${hh(tp)} pianificate (bonus esclusi)</span><br>Registrate in tutto: <b>${hh(dm.reduce((a,b)=>a+b))}</b> <span class="sub">· di cui bonus ${hh(bn)} · con timer ${hh(tm)} (il resto aggiunto a mano)</span></div><div class="tw"><table class="tbl"><tr><th>Attività</th>${['Lun','Mar','Mer','Gio','Ven','Sab','Dom'].map(x=>`<th>${x}</th>`).join('')}<th>Blocchi</th><th>Ore</th></tr>${rows}<tr><td>Totale ore</td>${dm.map(x=>`<td>${x>=.5?hh(x):'·'}</td>`).join('')}<td></td><td>${hh(dm.reduce((a,b)=>a+b))}</td></tr></table></div><div class="lg"><span><b style="background:var(--ok)"></b>minimo raggiunto</span><span><b style="background:var(--low)"></b>sotto il minimo</span><span><b style="background:var(--bonus)"></b>bonus</span><span><b style="background:var(--mut)"></b>non fatto</span></div>`}
+ return `<div class="bar"><b>${hh(td)}</b> <span class="sub">fatte su ${hh(tp)} pianificate nei feriali (bonus esclusi)</span><br>Registrate nei feriali: <b>${hh(dm.slice(0,5).reduce((a,b)=>a+b))}</b> <span class="sub">· di cui bonus ${hh(bn)} · con timer ${hh(tm)} (il resto aggiunto a mano)</span><br>Weekend, a parte: <b>${hh(dm[5]+dm[6])}</b> <span class="sub">· escluso dai conteggi dei feriali</span></div>${catBox(cat,dc)}<div class="tw"><table class="tbl"><tr><th>Attività</th>${['Lun','Mar','Mer','Gio','Ven','Sab','Dom'].map(x=>`<th>${x}</th>`).join('')}<th>Blocchi</th><th>Ore feriali</th></tr>${rows}<tr><td>Totale ore</td>${dm.map(x=>`<td>${x>=.5?hh(x):'·'}</td>`).join('')}<td></td><td>${hh(dm.slice(0,5).reduce((a,b)=>a+b))}</td></tr></table></div><div class="lg"><span><b style="background:var(--ok)"></b>minimo raggiunto</span><span><b style="background:var(--low)"></b>sotto il minimo</span><span><b style="background:var(--bonus)"></b>bonus</span><span><b style="background:var(--mut)"></b>non fatto</span></div>`}
 function dati(){const api='showSaveFilePicker' in window,bk=store.bk?Math.floor((Date.now()-store.bk)/864e5)+' giorni fa':'mai';
  return `<div class="bar pn"><b>Salvataggio dei dati</b>
  <p class="sub">${api?'I dati restano sempre nel browser di questo dispositivo. Collegando un file dentro la cartella di Google Drive si sincronizzano anche con gli altri dispositivi (usane uno alla volta).':'Questo browser non può collegare un file: i dati restano nel browser, usa Esporta e Importa per spostarli.'}</p>
@@ -203,8 +246,8 @@ function save(){readEd();const a=ed.acts;
  commit({u:Date.now(),acts:ed.acts,plan:ed.plan,pool:ed.pool})}
 function undo(){const p=store.cfgPrev;if(!p||!confirm('Tornare al piano precedente?'))return;commit({...p,u:Date.now()})}
 function render(){if(view==='piano'&&ed&&$('ed'))readEd();const d=pd(date);
- $('nav').innerHTML=`<button data-a="n" data-d="-1" aria-label="Giorno precedente">‹</button><span><b>${DN[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}</b></span><button data-a="n" data-d="1" aria-label="Giorno successivo">›</button><button data-a="n" data-d="0">Oggi</button>${[['oggi','Giorno'],['sett','Settimana'],['piano','Piano'],['dati','Dati']].map(([k,t])=>`<button data-a="v" data-v="${k}" class="${view===k?'on':''}">${t}</button>`).join('')}`;
- $('app').innerHTML=view==='oggi'?oggi():view==='sett'?sett():view==='piano'?piano():dati();if(view==='piano')tot()}
+ $('nav').innerHTML=`<button data-a="n" data-d="-1" aria-label="Giorno precedente">‹</button><span><b>${DN[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}</b></span><button data-a="n" data-d="1" aria-label="Giorno successivo">›</button><button data-a="n" data-d="0">Oggi</button>${[['oggi','Giorno'],['sett','Settimana'],['ana','Analisi'],['piano','Piano'],['dati','Dati']].map(([k,t])=>`<button data-a="v" data-v="${k}" class="${view===k?'on':''}">${t}</button>`).join('')}`;
+ $('app').innerHTML=view==='oggi'?oggi():view==='sett'?sett():view==='ana'?ana():view==='piano'?piano():dati();if(view==='piano')tot()}
 function tick(){roll();const a=(days[date]&&days[date].a)||{};let run=false;
  Object.keys(a).forEach(id=>{if(!a[id].run)return;run=true;const t=document.querySelector('[data-tile="'+id+'"]');if(!t)return;
   const blk=+t.dataset.blk,v=vals(id,blk,date),c=t.querySelectorAll('circle');
@@ -216,7 +259,8 @@ document.addEventListener('click',ev=>{const b=ev.target.closest('[data-a]');if(
  else if(a==='m')mut(date,id,e=>{e.ex=Math.max(0,e.ex+dn)});
  else if(a==='g')mut(date,id,e=>{e.g=Math.max(0,e.g+dn)});
  else if(a==='w')mut(date,id,e=>{e.w=e.w===v?'':v});
- else if(a==='n'){if(dn===0)date=today();else{const x=pd(date);x.setDate(x.getDate()+dn);date=ds(x)}render()}
+ else if(a==='n'){if(dn===0)date=today();else{const x=pd(date);if(view==='ana'&&per==='mese'){x.setDate(1);x.setMonth(x.getMonth()+dn)}else x.setDate(x.getDate()+dn*(view==='ana'?7:1));date=ds(x)}render()}
+ else if(a==='pe'){per=v;render()}
  else if(a==='v'){if(v==='piano'&&view!=='piano')openEd();view=v;render()}
  else if(a==='rp')sw(id);else if(a==='ar')arc(id);else if(a==='ad')add();else if(a==='ra'){readEd();ed.acts[id].x=0;render()}
  else if(a==='sv')save();else if(a==='un')undo()
